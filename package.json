@@ -1,5 +1,5 @@
 {
-  "name": "fast-formula-parser",
+  "name": "@assetcalc/fast-formula-parser",
   "version": "1.0.19",
   "description": "fast excel formula parser",
   "repository": "https://github.com/LesterLyu/fast-formula-parser",
