@@ -30,6 +30,7 @@ class FormulaParser {
       {
         functions: {},
         functionsNeedContext: {},
+        functionsRaw: {},
         onVariable: () => null,
         onCell: () => 0,
         onRange: () => [[0]],
@@ -51,7 +52,8 @@ class FormulaParser {
       TrigFunctions,
       WebFunctions,
       config.functions,
-      config.functionsNeedContext
+      config.functionsNeedContext,
+      config.functionsRaw
     );
     this.onRange = config.onRange;
     this.onCell = config.onCell;
@@ -66,7 +68,17 @@ class FormulaParser {
       .concat(Object.keys(DateFunctions));
 
     // functions need context and don't need to retrieve references
-    this.funsNeedContextAndNoDataRetrieve = ['ROW', 'ROWS', 'COLUMN', 'COLUMNS', 'SUMIF', 'INDEX', 'AVERAGEIF', 'IF'];
+    this.funsNeedContextAndNoDataRetrieve = [
+      'ROW',
+      'ROWS',
+      'COLUMN',
+      'COLUMNS',
+      'SUMIF',
+      'INDEX',
+      'AVERAGEIF',
+      'IF',
+      ...Object.keys(config.functionsRaw),
+    ];
 
     // functions need parser context
     this.funsNeedContext = [
@@ -150,7 +162,7 @@ class FormulaParser {
    * @param args - Arguments that pass to the function.
    * @return {*}
    */
-  _callFunction(name, args) {
+  _callFunction(name, args, bracket) {
     if (name.indexOf('_xlfn.') === 0) name = name.slice(6);
     name = name.toUpperCase();
     // if one arg is null, it means 0 or "" depends on the function it calls
@@ -181,6 +193,9 @@ class FormulaParser {
         if (!this.funsNeedContextAndNoDataRetrieve.includes(name) && !this.funsNeedContext.includes(name))
           res = this.functions[name](...args);
         else res = this.functions[name](this, ...args);
+        this.parser.tokVector[this.parser.currIdx].args = JSON.parse(JSON.stringify(args));
+        this.parser.tokVector[this.parser.currIdx].result = JSON.parse(JSON.stringify(res));
+        this.parser.tokVector[this.parser.currIdx].bracket = JSON.parse(JSON.stringify(bracket));
       } catch (e) {
         // allow functions throw FormulaError, this make functions easier to implement!
         if (e instanceof FormulaError) {
@@ -208,20 +223,20 @@ class FormulaParser {
     }
   }
 
-  async callFunctionAsync(name, args) {
+  async callFunctionAsync(name, args, bracket) {
     const awaitedArgs = [];
     for (const arg of args) {
       awaitedArgs.push(await arg);
     }
-    const res = await this._callFunction(name, awaitedArgs);
+    const res = await this._callFunction(name, awaitedArgs, bracket);
     return FormulaHelpers.checkFunctionResult(res);
   }
 
-  callFunction(name, args) {
+  callFunction(name, args, bracket) {
     if (this.async) {
-      return this.callFunctionAsync(name, args);
+      return this.callFunctionAsync(name, args, bracket);
     } else {
-      const res = this._callFunction(name, args);
+      const res = this._callFunction(name, args, bracket);
       return FormulaHelpers.checkFunctionResult(res);
     }
   }

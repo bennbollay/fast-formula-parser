@@ -286,12 +286,13 @@ class Parsing extends EmbeddedActionsParser {
     );
 
     $.RULE('functionCall', () => {
-      const functionName = $.CONSUME(Function).image.slice(0, -1);
+      const startToken = $.CONSUME(Function);
+      const functionName = startToken.image.slice(0, -1);
       // console.log('functionName', functionName);
       const args = $.SUBRULE($.arguments);
-      $.CONSUME(CloseParen);
+      const endToken = $.CONSUME(CloseParen);
       // dependency parser won't call function.
-      return $.ACTION(() => context.callFunction(functionName, args));
+      return $.ACTION(() => context.callFunction(functionName, args, [startToken.startOffset, endToken.endOffset]));
     });
 
     $.RULE('arguments', () => {
