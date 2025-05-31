@@ -162,7 +162,7 @@ class FormulaParser {
    * @param args - Arguments that pass to the function.
    * @return {*}
    */
-  _callFunction(name, args, bracket) {
+  _callFunction(name, args, span) {
     if (name.indexOf('_xlfn.') === 0) name = name.slice(6);
     name = name.toUpperCase();
     // if one arg is null, it means 0 or "" depends on the function it calls
@@ -195,7 +195,7 @@ class FormulaParser {
         else res = this.functions[name](this, ...args);
         this.parser.tokVector[this.parser.currIdx].args = JSON.parse(JSON.stringify(args));
         this.parser.tokVector[this.parser.currIdx].result = JSON.parse(JSON.stringify(res));
-        this.parser.tokVector[this.parser.currIdx].bracket = JSON.parse(JSON.stringify(bracket));
+        this.parser.tokVector[this.parser.currIdx].span = JSON.parse(JSON.stringify(span));
       } catch (e) {
         // allow functions throw FormulaError, this make functions easier to implement!
         if (e instanceof FormulaError) {
@@ -223,20 +223,20 @@ class FormulaParser {
     }
   }
 
-  async callFunctionAsync(name, args, bracket) {
+  async callFunctionAsync(name, args, span) {
     const awaitedArgs = [];
     for (const arg of args) {
       awaitedArgs.push(await arg);
     }
-    const res = await this._callFunction(name, awaitedArgs, bracket);
+    const res = await this._callFunction(name, awaitedArgs, span);
     return FormulaHelpers.checkFunctionResult(res);
   }
 
-  callFunction(name, args, bracket) {
+  callFunction(name, args, span) {
     if (this.async) {
-      return this.callFunctionAsync(name, args, bracket);
+      return this.callFunctionAsync(name, args, span);
     } else {
-      const res = this._callFunction(name, args, bracket);
+      const res = this._callFunction(name, args, span);
       return FormulaHelpers.checkFunctionResult(res);
     }
   }
